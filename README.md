@@ -7,7 +7,9 @@ Usage Instructions:
 1. Download CodechefCrawler.jar from the repository.
 2. $ java -jar CodechefCrawler.jar <username>
 
-eg: $ java -jar CodechefCrawler.jar mb1994
+Example:
+=========
+$ java -jar CodechefCrawler.jar mb1994
 
 Features:
 ==========
