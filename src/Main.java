@@ -4,9 +4,6 @@ import java.io.InputStreamReader;
 /**
  * Created by Mayank Bhura on 5/2/15.
  */
-// TODO: What if i could monitor the number of bytes consumed during the process. That would be good.
-// TODO: Log the problem codes that weren't downloaded.
-// TODO: Would getting the soln link and soln together for a question be a better idea?
 
 public class Main {
     public static void main(String[] args) throws Exception {
