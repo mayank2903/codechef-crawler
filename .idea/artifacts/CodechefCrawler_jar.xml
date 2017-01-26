@@ -1,0 +1,10 @@
+<component name="ArtifactManager">
+  <artifact type="jar" name="CodechefCrawler:jar">
+    <output-path>$PROJECT_DIR$/out/artifacts/CodechefCrawler_jar</output-path>
+    <root id="archive" name="CodechefCrawler.jar">
+      <element id="module-output" name="CodechefCrawler" />
+      <element id="extracted-dir" path="$PROJECT_DIR$/jsoup-1.10.2.jar" path-in-jar="/" />
+      <element id="extracted-dir" path="$APPLICATION_HOME_DIR$/redist/annotations-java8.jar" path-in-jar="/" />
+    </root>
+  </artifact>
+</component>
