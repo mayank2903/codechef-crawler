@@ -5,7 +5,7 @@ Any feedback is welcome!
 Usage Instructions:
 ===================
 1. Download CodechefCrawler.jar from the repository.
-2. $ java -jar CodechefCrawler.jar <username>
+2. $ java -jar CodechefCrawler.jar \<username\>
 
 Example:
 =========
