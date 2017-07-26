@@ -1,3 +1,4 @@
+import com.sun.org.apache.xerces.internal.impl.xpath.regex.Match;
 import javafx.util.Pair;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
@@ -8,6 +9,8 @@ import java.io.*;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.*;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * Created by Mayank Bhura on 5/2/15.
@@ -25,8 +28,7 @@ public class CodechefCrawler {
     private final String CODECHEF_URL = "https://www.codechef.com";
     private final int MAX_RETRIES = 5;
 
-
-    private List <Contest> contestList = new ArrayList<>();
+    private List<Contest> contestList = new ArrayList<>();
 
     private String username;
     private HttpURLConnection conn;
@@ -92,46 +94,83 @@ public class CodechefCrawler {
         System.out.println("\n");
     }
 
+    private int getNumberOfPages(Elements pageInfo) {
+        int noOfPages;
+        if (pageInfo.text().equals("")) {
+            noOfPages = 1;
+        } else {
+            noOfPages = Integer.parseInt(
+                    pageInfo
+                            .select("tbody")
+                            .select("tr")
+                            .select("td[align=center]")
+                            .select("div.pageinfo")
+                            .text()
+                            .split("of")[1].
+                            trim()
+            );
+        }
+        return noOfPages;
+    }
+
     /**
      * Fetches the submission IDs for AC solutions of a given user.
      *
      * @throws IOException
      * @throws InterruptedException
      */
-    private Pair<String,String> getLanguageAndProblemId(String problemCode, String problemURL) throws IOException, InterruptedException {
-        int tries = 0;
-        boolean found = false;
-        boolean isHidden = false;
-        Pair pair = null;
+    private Pair<String, String> getLanguageAndProblemId(String problemCode, String problemURL) throws IOException, InterruptedException {
         System.out.println("Finding submission ID for problem: " + problemCode);
-        while (!found && !isHidden) {
-            String url = CODECHEF_URL + problemURL + "?page=" + Integer.toString(tries);
-            Document doc = Jsoup.parse(getPageContent(url));
+        String statusPageURL = CODECHEF_URL + problemURL;
+        Document doc = Jsoup.parse(getPageContent(statusPageURL));
 
-            // For each page of submission for this problem:
+        ArrayList<Submission> listOfACSubmissions = new ArrayList<>();
+        // For each page of submission for this problem:
+        Elements pageInfo = doc.select("table[align=center]");
+        int noOfPages = getNumberOfPages(pageInfo);
+        System.out.println(noOfPages);
+        for (int i = 0; i < noOfPages; i++) {
+            String url = statusPageURL + "?page=" + i;
+            doc = Jsoup.parse(getPageContent(url));
             Elements rows = doc.select("tr[class=\\\"kol\\\"]");
+            System.out.println("---------------------------------");
             for (Element row : rows) {
                 // For each row, there are 8 fields.
                 Elements fields = row.select("td");
                 if (fields.toString().contains("No Recent Activity")) {
                     System.out.println("This problem has hidden solution or no solution. Skipping...");
-                    isHidden = true;
                     break;
                 }
-
                 // First check if this row is AC.
                 if (fields.get(3).toString().contains("tick-icon.gif")) {
-                    pair = new Pair(fields.get(0).text(), fields.get(6).text());
-                    System.out.println("Found!");
-                    found = true;
-                    break;
+                    Submission submission = new Submission();
+                    String str = fields.get(3).toString();
+                    System.out.println(str);
+                    Pattern pattern = Pattern.compile("\\[.*pts]");
+                    Matcher matcher = pattern.matcher(str);
+                    String points = "";
+                    if (matcher.find())
+                        points = matcher.group(0);
+                    if (!points.equals("")) {
+                        points = points.substring(1);
+                        points = points.substring(0, points.length() - 4).trim();
+                        submission.setScore(Double.parseDouble(points));
+                    } else {
+                        submission.setScore(100.0);
+                    }
+                    submission.setSubmissionId(Integer.parseInt(fields.get(0).text().trim()));
+                    submission.setLanguage(fields.get(6).text());
+                    String memory = fields.get(5).text().trim();
+                    submission.setMemory(Double.parseDouble(memory.substring(0, memory.length() - 1)));
+                    submission.setTime(Double.parseDouble(fields.get(4).text().trim()));
+                    listOfACSubmissions.add(submission);
                 }
             }
-
-            tries++;
         }
-        return pair;
+        Collections.sort(listOfACSubmissions, new SortSubmissions());
+        return new Pair<>(listOfACSubmissions.get(0).getSubmissionId() + "", listOfACSubmissions.get(0).getLanguage());
     }
+
     private void fetchSubmissionIDs() throws IOException, InterruptedException {
 
         for (Contest contest : contestList) {
@@ -139,7 +178,7 @@ public class CodechefCrawler {
             for (Problem problem : problemList) {
                 String problemCode = problem.getProblemCode();
                 String problemURL = problem.getProblemURL();
-                Pair <String,String> pair = getLanguageAndProblemId(problemCode, problemURL);
+                Pair<String, String> pair = getLanguageAndProblemId(problemCode, problemURL);
                 problem.setProblemId(pair.getKey());
                 problem.setLanguage(pair.getValue());
             }
@@ -153,9 +192,6 @@ public class CodechefCrawler {
      * @throws InterruptedException
      */
     private void fetchSolutions() throws IOException, InterruptedException {
-
-
-
         String offset = CODECHEF_URL + "/viewplaintext/";
         System.out.println("Fetching codes:");
         System.out.println("================================");
@@ -163,7 +199,7 @@ public class CodechefCrawler {
         for (Contest contest : contestList) {
             String contestName = contest.getContestName();
             String filePath = CODECHEF_DIR + FILE_SEPARATOR + username + FILE_SEPARATOR
-                                                                    + contestName.substring(0, contestName.length() - 1);
+                    + contestName.substring(0, contestName.length() - 1);
             System.out.println(filePath);
             File file = new File(filePath);
             if (file != null) {
