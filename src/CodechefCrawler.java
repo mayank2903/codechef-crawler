@@ -1,4 +1,3 @@
-import org.jetbrains.annotations.NotNull;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
@@ -68,17 +67,25 @@ public class CodechefCrawler {
         }
         Document doc = Jsoup.parse(content);
 
-        Elements cells = doc.select("td");
+        Elements cells = doc.select("p");
         for (int i = 0; i < cells.size(); i++) {
-            String text = cells.get(i).text();
-            if (text.equals("Problems Successfully Solved:") || text.equals("Problems Partially Solved:")) {
-                Elements problems = cells.get(i + 1).select("a");
+            Element temp = cells.get(i);
+            Elements contests = temp.getAllElements();
+            for (Element contest : contests) {
+                String typeOfContest = contest.select("strong").text();
+                if (typeOfContest.equals("")) {
+                    return;
+                }
+                System.out.println("Contest Type :" + typeOfContest);
+                Elements problems = contest.select("a");
                 for (Element problem : problems) {
                     System.out.println("Solved:" + problem.text());
                     problemList.add(problem.text());
                     problemURLs.add(problem.attr("href"));
                 }
+                break;
             }
+            System.out.println("-----------------------------");
         }
         System.out.println("\n");
     }
